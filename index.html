@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de Vendas</title>
+<meta name="description" content="Busca de vendas (ITBI) por raio em São Paulo, direto no navegador.">
+<style>
+/* Leaflet 1.9.4 */
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f5f3; --card:#ffffff; --ink:#1a1f1c; --muted:#5e6b63;
+    --line:#e3e7e3; --brand:#16a34a; --brand-ink:#ffffff; --accent:#0f5132;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  }
+  :root:not([data-theme="light"]){ }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12150f; --card:#1b1f18; --ink:#eef1ea; --muted:#9aa89d;
+      --line:#2b3127; --brand:#22c55e; --brand-ink:#06230f; --accent:#86efac;
+      --shadow:0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12150f; --card:#1b1f18; --ink:#eef1ea; --muted:#9aa89d;
+    --line:#2b3127; --brand:#22c55e; --brand-ink:#06230f; --accent:#86efac;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  .wrap{max-width:720px;margin:0 auto;padding:16px;}
+  h1{font-size:1.25rem;margin:.2rem 0 .1rem;}
+  .sub{color:var(--muted);font-size:.85rem;margin:0 0 1rem;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px;margin-bottom:14px;box-shadow:var(--shadow);}
+  label{display:block;font-size:.78rem;color:var(--muted);margin:0 0 4px;font-weight:600;}
+  select,input{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;
+    background:var(--bg);color:var(--ink);font-size:1rem;}
+  .row{display:flex;gap:10px;}
+  .row>div{flex:1;}
+  button{width:100%;border:0;border-radius:9px;padding:13px;font-size:1rem;font-weight:700;
+    cursor:pointer;}
+  .btn-brand{background:var(--brand);color:var(--brand-ink);}
+  .btn-ghost{background:transparent;color:var(--brand);border:1.5px solid var(--brand);}
+  .mt{margin-top:10px;}
+  #map{height:300px;border-radius:12px;margin-bottom:14px;border:1px solid var(--line);}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .stat{flex:1;min-width:130px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:12px;box-shadow:var(--shadow);}
+  .stat .k{font-size:.72rem;color:var(--muted);font-weight:600;}
+  .stat .v{font-size:1.35rem;font-weight:800;letter-spacing:-.01em;}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);}
+  table{border-collapse:collapse;width:100%;font-size:.82rem;white-space:nowrap;}
+  th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line);}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);}
+  th{color:var(--muted);font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;}
+  .hint{color:var(--muted);font-size:.78rem;margin-top:8px;}
+  .status{font-size:.85rem;color:var(--muted);padding:6px 2px;}
+  .divider{height:1px;background:var(--line);margin:14px 0;}
+  .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.8rem;margin:12px 0;}
+  .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏠 Consulta de Vendas · H2I</h1>
+  <p class="sub">Vendas registradas (ITBI) ao redor de um endereço ou da sua localização. Fonte: Prefeitura de SP.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Raio</label>
+        <select id="raio">
+          <option value="100">100 m</option><option value="200">200 m</option>
+          <option value="300" selected>300 m</option><option value="500">500 m</option>
+          <option value="1000">1000 m</option><option value="1500">1500 m</option>
+        </select>
+      </div>
+      <div>
+        <label>Tipo de imóvel</label>
+        <select id="tipo">
+          <option value="0">Todos</option><option value="1">Casas/Residências</option>
+          <option value="2">Apartamentos</option>
+        </select>
+      </div>
+    </div>
+    <div class="row mt">
+      <div><label>Ano inicial</label><input id="anoMin" type="number" min="2010" step="1"></div>
+      <div><label>Ano final</label><input id="anoMax" type="number" min="2010" step="1"></div>
+    </div>
+
+    <button class="btn-brand mt" id="btnGps">📍 Buscar na minha localização atual</button>
+
+    <div class="orline">ou buscar por endereço</div>
+    <div class="row">
+      <div style="flex:3"><label>Endereço (rua)</label><input id="rua" placeholder="Ex.: Rua Banibás"></div>
+      <div style="flex:1"><label>Número</label><input id="num" placeholder="opc."></div>
+    </div>
+    <button class="btn-ghost mt" id="btnEnd">🔎 Buscar vendas</button>
+  </div>
+
+  <div class="status" id="status">Carregando base…</div>
+  <div id="resultado" style="display:none">
+    <div class="stats" id="stats"></div>
+    <div id="map"></div>
+    <div class="tbl-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    <p class="hint">Valores declarados no ITBI; subdeclarados (&lt; R$ 1.000/m²) e outliers de R$/m² removidos automaticamente.</p>
+  </div>
+</div>
+
+<script>
+const BASE = "./";  // servido pelo GitHub Pages, mesma origem dos dados
+const CAMPOS = ["lat","lon","valor","area","terreno","uso","ano","logr","num"];
+let MANIFEST=null, CELL=0.01, STREETS=null;
+const tileCache=new Map();
+let map=null, layer=null;
+
+const $=id=>document.getElementById(id);
+const anoAtual=new Date().getFullYear();
+$("anoMin").value=anoAtual-5; $("anoMax").value=anoAtual; $("anoMin").max=anoAtual; $("anoMax").max=anoAtual;
+
+const fmtBR=n=>{ if(n==null||isNaN(n)) return "—";
+  return Math.round(n).toLocaleString("pt-BR"); };
+const norm=s=>(s||"").toString().normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().trim();
+const STOP=new Set(["RUA","AVENIDA","AV","ALAMEDA","TRAVESSA","PRACA","DOS","DAS","DE","DO","DA","PROFESSOR","DR","DOUTOR"]);
+function palavrasRua(nome){ return norm(nome).split(/\s+/).map(p=>p.replace(/[^A-Z0-9]/g,""))
+  .filter(p=>p.length>2 && !STOP.has(p)); }
+function haversine(la1,lo1,la2,lo2){ const R=6371000,t=Math.PI/180;
+  const a=Math.sin((la2-la1)*t/2)**2+Math.cos(la1*t)*Math.cos(la2*t)*Math.sin((lo2-lo1)*t/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a))); }
+function quantil(sorted,q){ const n=sorted.length; if(!n) return NaN;
+  const pos=(n-1)*q, b=Math.floor(pos), r=pos-b;
+  return b+1<n ? sorted[b]+r*(sorted[b+1]-sorted[b]) : sorted[b]; }
+
+async function fetchJSON(url,ms=25000){
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms);
+  try{ const r=await fetch(url,{signal:ctl.signal});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return await r.json(); }
+  catch(e){ throw new Error(e.name==="AbortError" ? "tempo esgotado (rede bloqueada?)" : e.message); }
+  finally{ clearTimeout(t); }
+}
+async function init(){
+  try{
+    MANIFEST=await fetchJSON(BASE+"manifest.json");
+    CELL=MANIFEST.cell_size||0.01;
+    $("status").textContent="Base pronta ("+(MANIFEST.n_transacoes||0).toLocaleString("pt-BR")+" vendas). Busque por GPS ou endereço.";
+  }catch(e){ $("status").textContent="Falha ao carregar a base: "+e.message+". (O preview da Claude costuma bloquear dados externos — no app publicado funciona.)"; }
+}
+async function getStreets(){
+  if(STREETS) return STREETS;
+  $("status").textContent="Carregando índice de ruas (uma vez só)…";
+  const j=await fetchJSON(BASE+"streets.json",30000);
+  STREETS=j.ruas; return STREETS;
+}
+async function getTile(i,j){
+  const key=i+"_"+j;
+  if(tileCache.has(key)) return tileCache.get(key);
+  let recs=[];
+  try{ recs=await fetchJSON(BASE+"tiles/"+key+".json",20000); }catch(e){ recs=[]; }
+  tileCache.set(key,recs); return recs;
+}
+function cellsFor(lat,lon,raio){
+  const dLat=raio/111320, dLon=raio/(111320*Math.cos(lat*Math.PI/180));
+  const i0=Math.floor((lat-dLat)/CELL), i1=Math.floor((lat+dLat)/CELL);
+  const j0=Math.floor((lon-dLon)/CELL), j1=Math.floor((lon+dLon)/CELL);
+  const out=[]; for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++) out.push([i,j]);
+  return out;
+}
+async function geocode(rua,num){
+  const pals=palavrasRua(rua); if(!pals.length) return null;
+  const ruas=await getStreets();
+  const match=ruas.filter(r=>pals.every(p=>r[0].includes(p)));
+  if(!match.length) return null;
+  // distrito modal (maior contagem somada)
+  const porDist={}; for(const r of match){ porDist[r[1]]=(porDist[r[1]]||0)+r[4]; }
+  let dsel=null,best=-1; for(const d in porDist){ if(porDist[d]>best){best=porDist[d];dsel=d;} }
+  const sel=match.filter(r=>r[1]===dsel);
+  const lat=sel.reduce((s,r)=>s+r[2],0)/sel.length, lon=sel.reduce((s,r)=>s+r[3],0)/sel.length;
+  return {lat,lon,rotulo:(rua+(num?", "+num:"")+" · "+dsel)};
+}
+async function buscar(latc,lonc,rotulo){
+  const raio=+$("raio").value, tipo=+$("tipo").value;
+  const anoMin=+$("anoMin").value||2010, anoMax=+$("anoMax").value||anoAtual;
+  $("status").textContent="Buscando vendas…"; $("resultado").style.display="none";
+  const cells=cellsFor(latc,lonc,raio);
+  const lotes=await Promise.all(cells.map(c=>getTile(c[0],c[1])));
+  let rows=[];
+  for(const recs of lotes) for(const r of recs){
+    if(tipo && r[5]!==tipo) continue;
+    const ano=r[6]; if(ano!=null && (ano<anoMin||ano>anoMax)) continue;
+    const d=haversine(latc,lonc,r[0],r[1]); if(d>raio) continue;
+    const pm2=r[2]/r[3]; const pm2t=r[4]>0?r[2]/r[4]:null;
+    rows.push({lat:r[0],lon:r[1],valor:r[2],area:r[3],terreno:r[4],ano,
+      logr:r[7],num:r[8],dist:d,pm2,pm2t});
+  }
+  // IQR em R$/m² construído
+  if(rows.length>=4){
+    const arr=rows.map(x=>x.pm2).sort((a,b)=>a-b);
+    const q1=quantil(arr,.25),q3=quantil(arr,.75),iqr=q3-q1;
+    if(iqr>0) rows=rows.filter(x=>x.pm2>=q1-1.5*iqr && x.pm2<=q3+1.5*iqr);
+  }
+  rows.sort((a,b)=>a.dist-b.dist);
+  render(latc,lonc,rotulo,raio,rows);
+}
+function render(latc,lonc,rotulo,raio,rows){
+  if(!rows.length){ $("status").textContent="Nenhuma venda encontrada para "+rotulo+". Tente aumentar o raio ou o período."; return; }
+  $("status").textContent=rows.length+" vendas · "+rotulo;
+  // stats
+  const pm2=rows.map(r=>r.pm2).sort((a,b)=>a-b);
+  const med=quantil(pm2,.5);
+  $("stats").innerHTML=
+    `<div class="stat"><div class="k">Vendas no raio</div><div class="v">${rows.length}</div></div>`+
+    `<div class="stat"><div class="k">Mediana R$/m² constr.</div><div class="v">R$ ${fmtBR(med)}</div></div>`+
+    `<div class="stat"><div class="k">Faixa R$/m²</div><div class="v" style="font-size:1rem">R$ ${fmtBR(pm2[0])} – ${fmtBR(pm2[pm2.length-1])}</div></div>`;
+  // tabela
+  const th=`<tr><th>Endereço</th><th>Ano</th><th>Preço de venda</th><th>Área constr. (m²)</th>`+
+    `<th>Área terreno (m²)</th><th>R$/m² constr.</th><th>R$/m² terreno</th><th>Dist. (m)</th></tr>`;
+  $("tbl").querySelector("thead").innerHTML=th;
+  $("tbl").querySelector("tbody").innerHTML=rows.map(r=>{
+    const end=r.logr+(r.num?", "+r.num:"");
+    return `<tr><td>${end}</td><td>${r.ano??""}</td><td>R$ ${fmtBR(r.valor)}</td>`+
+      `<td>${fmtBR(r.area)}</td><td>${r.terreno>0?fmtBR(r.terreno):"—"}</td>`+
+      `<td>R$ ${fmtBR(r.pm2)}</td><td>${r.pm2t?"R$ "+fmtBR(r.pm2t):"—"}</td><td>${fmtBR(r.dist)}</td></tr>`;
+  }).join("");
+  $("resultado").style.display="block";
+  // mapa
+  if(!map){ map=L.map("map"); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map); }
+  if(layer) layer.remove(); layer=L.layerGroup().addTo(map);
+  L.circle([latc,lonc],{radius:raio,color:"#2563eb",weight:1,fillOpacity:.06}).addTo(layer);
+  L.circleMarker([latc,lonc],{radius:8,color:"#dc2626",weight:3,fill:true,fillColor:"#dc2626",fillOpacity:.9}).addTo(layer).bindPopup(rotulo);
+  for(const r of rows){
+    L.circleMarker([r.lat,r.lon],{radius:5,color:"#16a34a",fill:true,fillOpacity:.85})
+      .addTo(layer).bindPopup(`${r.logr}${r.num?", "+r.num:""}<br>R$ ${fmtBR(r.valor)} · ${fmtBR(r.pm2)}/m²`);
+  }
+  map.setView([latc,lonc],16); setTimeout(()=>map.invalidateSize(),100);
+}
+
+$("btnGps").onclick=()=>{
+  if(!navigator.geolocation){ $("status").textContent="Localização indisponível neste navegador."; return; }
+  $("status").textContent="Obtendo sua localização…";
+  navigator.geolocation.getCurrentPosition(
+    p=>buscar(p.coords.latitude,p.coords.longitude,"Sua localização atual").catch(e=>$("status").textContent="Erro na busca: "+e.message),
+    ()=>$("status").textContent="Não foi possível obter a localização (permissão negada?).",
+    {enableHighAccuracy:true,timeout:10000});
+};
+$("btnEnd").onclick=async()=>{
+  const rua=$("rua").value.trim(); if(!rua){ $("status").textContent="Digite ao menos a rua."; return; }
+  $("status").textContent="Localizando endereço…";
+  try{
+    const g=await geocode(rua,$("num").value.trim());
+    if(!g){ $("status").textContent="Endereço não encontrado na base. Confira o nome da rua."; return; }
+    await buscar(g.lat,g.lon,g.rotulo);
+  }catch(e){ $("status").textContent="Erro ao localizar: "+e.message; }
+};
+init();
+</script>
+</body>
+</html>

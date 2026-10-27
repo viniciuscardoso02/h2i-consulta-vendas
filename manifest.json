@@ -1,0 +1,24 @@
+{
+  "cell_size": 0.01,
+  "piso_m2": 1000,
+  "campos_tile": [
+    "lat",
+    "lon",
+    "valor",
+    "area",
+    "terreno",
+    "uso",
+    "ano",
+    "logr",
+    "num"
+  ],
+  "n_tiles": 970,
+  "n_transacoes": 1782238,
+  "bounds": {
+    "lat_min": -23.911596,
+    "lat_max": -23.398124,
+    "lon_min": -46.812807,
+    "lon_max": -46.365844
+  },
+  "gerado_em": "2026-10-27T13:44:27"
+}
